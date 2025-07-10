@@ -125,6 +125,12 @@ def getText(query, model = "gemini-2.5-flash", useSearch=False, output_format="j
         #print("^^^^^ REMOVING CODE BLOCK ^^^^")
         response_text = _extract_json_from_codeblock(response_text)
 
+    if output_format == "markdown" and response_text.startswith("```markdown"):
+        # Remove markdown code block markers
+        response_text = response_text.replace("```markdown", "")
+        if response_text.endswith("```"):
+            response_text = response_text[:-3]
+
 
     if getattr(response.candidates[0], "grounding_metadata") and response.candidates[0].grounding_metadata:
         debug_info = {
