@@ -1,6 +1,6 @@
 from typing import TypeVar, Type, List, Union, Optional, Dict, Any, Tuple
 from pydantic import BaseModel, create_model, Field, ValidationError
-from call_models.call_model import generateObject, generateText, RetryPolicy
+from call_model import generateObject, generateText, RetryPolicy
 import logging
 import json
 import time
