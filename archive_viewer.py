@@ -5,6 +5,7 @@ from datetime import datetime
 import os
 from typing import Dict, List, Optional, Any
 import uuid
+from call_model_constants import LLM_CALL_ARCHIVE, EVAL_CALLS_FILE, JUDGEMENT_CALLS_FILE
 
 # Page configuration
 st.set_page_config(
@@ -51,9 +52,9 @@ st.markdown("""
 
 class ArchiveViewer:
     def __init__(self):
-        self.archived_calls_file = "evals/archived_calls.jsonl"
-        self.eval_runs_file = "evals/eval_run_calls.jsonl"
-        self.judgement_results_file = "evals/judgement_results.jsonl"
+        self.archived_calls_file = LLM_CALL_ARCHIVE
+        self.eval_runs_file = EVAL_CALLS_FILE
+        self.judgement_results_file = JUDGEMENT_CALLS_FILE
         
         # Load data
         self.archived_calls = self.load_jsonl(self.archived_calls_file)
