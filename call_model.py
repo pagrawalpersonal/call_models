@@ -16,7 +16,7 @@ from tenacity import (
     retry_if_exception
 )
 import time
-from config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
+from call_model_config import OPENROUTER_API_KEY, OPENROUTER_BASE_URL
 
 logger = logging.getLogger(__name__)
 

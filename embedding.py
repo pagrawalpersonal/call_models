@@ -6,7 +6,7 @@ from tenacity import retry, stop_after_attempt, wait_exponential, before_sleep_l
 import logging
 from google import genai
 from google.genai import types
-from config import GOOGLE_API_KEY
+from call_model_config import GOOGLE_API_KEY
 logger = logging.getLogger(__name__)
 
 @dataclass
