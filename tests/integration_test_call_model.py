@@ -18,7 +18,7 @@ class User(BaseModel):
 @pytest.mark.asyncio
 async def test_integration_generateObject_success():
     response = await generateObject(
-        model="qwen/qwen3-235b-a22b",
+        model="openai/gpt-4.1-mini",
         system_prompt="You are a helpful assistant that provides information about users.",
         user_prompt="Give me details about a user named John Doe who is 30 years old.",
         response_model=User,
@@ -32,7 +32,7 @@ async def test_integration_generateObject_success():
 @pytest.mark.asyncio
 async def test_integration_generateText_success():
     response = await generateText(
-        model="qwen/qwen3-235b-a22b",
+        model="openai/gpt-4.1-mini",
         system_prompt="You are a helpful assistant.",
         user_prompt="What is the capital of France?",
         retry_policy=RetryPolicy.NO_RETRY
