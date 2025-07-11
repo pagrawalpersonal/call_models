@@ -14,12 +14,10 @@ import ast
 import re
 import uuid
 from pedantic_models import ArchiveInfo, DebugInfo, PydanticEncoder
-
+from call_model_constants import LOG_FILE_PATH, LLM_CALL_ARCHIVE
 
 logger = logging.getLogger(__name__)
 
-LOG_FILE_PATH = "call_model.log"
-LLM_CALL_ARCHIVE = "evals/archived_calls.jsonl"
 
 def set_logging_level(level = logging.DEBUG):
     from openai import OpenAI

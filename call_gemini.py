@@ -4,7 +4,7 @@ from google.genai.errors import ServerError, ClientError
 import sys
 import os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-from config import GOOGLE_API_KEY
+from call_model_config import GOOGLE_API_KEY
 from json_manipulations import _extract_json_from_codeblock
 import json
 import logging

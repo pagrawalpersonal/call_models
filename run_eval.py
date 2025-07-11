@@ -1,14 +1,14 @@
 import json
 import asyncio
 from typing import Optional, List, Dict, Any
-from call_models.call_model_with_evals import generateObjectWithTemplates, RetryPolicy, generateObjectUsingTools, LLM_CALL_ARCHIVE
+from call_model_with_evals import generateObjectWithTemplates, RetryPolicy, generateObjectUsingTools, LLM_CALL_ARCHIVE
 from pedantic_models import ArchiveInfo, PydanticEncoder
 import logging
 from pydantic import create_model, BaseModel
 from typing import Any, Optional, List
 from datetime import datetime
 import uuid
-from constants import EVAL_CALLS_FILE
+from call_model_constants import EVAL_CALLS_FILE
 
 
 # Set up logging
@@ -168,7 +168,7 @@ async def process_archive_file(
 
 async def main():
     import argparse
-    from call_models.call_model_with_evals import set_logging_level
+    from call_model_with_evals import set_logging_level
     import logging
     
     # Get the root logger

@@ -3,10 +3,10 @@ import asyncio
 import argparse
 from typing import Optional, List, Dict, Any, Tuple
 from pydantic import BaseModel, Field
-from call_models.call_model_with_evals import generateObjectWithTemplates, RetryPolicy
+from call_model_with_evals import generateObjectWithTemplates, RetryPolicy
 import logging
 from string import Template
-from constants import JUDGEMENT_MODEL, EVAL_CALLS_FILE, JUDGEMENT_CALLS_FILE
+from call_model_constants import JUDGEMENT_MODEL, EVAL_CALLS_FILE, JUDGEMENT_CALLS_FILE
 
 # Set up logging
 logger = logging.getLogger(__name__)
@@ -139,7 +139,7 @@ async def process_eval_file(
     return results
 
 async def main():
-    from call_models.call_model_with_evals import set_logging_level
+    from call_model_with_evals import set_logging_level
     import logging
     
     # Get the root logger
