@@ -1,6 +1,6 @@
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from call_model_with_evals import generateObjectWithTemplates, generateTextWithTemplates, generateObjectUsingTools
 from pedantic_models import DebugInfo
 from call_model import OpenRouterClient
@@ -24,7 +24,7 @@ class CapitalResponse(BaseModel):
 @pytest.mark.asyncio
 async def test_integration_generateObjectWithTemplates_success():
     response, debug_info = await generateObjectWithTemplates(
-        model="qwen/qwen3-235b-a22b",
+        model="openai/gpt-4.1-mini",
         system_prompt_template="You are a helpful assistant that provides information about users.",
         system_prompt_inputs={},
         user_prompt_template="Give me details about a user named Jane Doe who is 25 years old.",
@@ -40,7 +40,7 @@ async def test_integration_generateObjectWithTemplates_success():
 @pytest.mark.asyncio
 async def test_integration_generateTextWithTemplates_success():
     response = await generateTextWithTemplates(
-        model="qwen/qwen3-235b-a22b",
+        model="openai/gpt-4.1-mini",
         system_prompt_template="You are a creative writer.",
         system_prompt_inputs={},
         user_prompt_template="Write a short story about a robot who discovers music.",
@@ -53,24 +53,32 @@ async def test_integration_generateTextWithTemplates_success():
 @pytest.mark.asyncio
 async def test_integration_generateObjectUsingTools_success():
     
-    def get_weather(city: str):
-        return f"The weather in {city} is sunny."
+    class FantasySearchTool(BaseModel):
+        """Search to find relevant information for a fictional story."""
+        query: str = Field(..., description="The search query.")
+
+    def search(query: str):
+        if "Swazilandonia" in query:
+            return "The capital of Swazilandonia is Paris."
+        return "I don't know."
 
     tools = {
-        "get_weather": (BaseModel, get_weather)
+        "FantasySearchTool": (FantasySearchTool, search)
     }
 
     response, debug_info = await generateObjectUsingTools(
-        model="qwen/qwen3-235b-a22b",
+        model="openai/gpt-4.1-mini",
         system_prompt_template="You are a helpful assistant that can use tools to find information.",
         system_prompt_inputs={},
-        user_prompt_template="What is the capital of Germany?",
+        user_prompt_template="What is the capital of fictional country Swazilandonia?",
         user_prompt_inputs={},
         response_model=CapitalResponse,
         tools=tools
     )
 
+    print(response)
+
     assert isinstance(response, CapitalResponse)
-    assert response.capital == "Berlin"
-    assert response.country == "Germany"
+    assert response.capital == "Paris"
+    assert response.country == "Swazilandonia"
     assert isinstance(debug_info, DebugInfo)
