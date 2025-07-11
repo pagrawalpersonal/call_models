@@ -9,8 +9,8 @@ class MockResponse(BaseModel):
     text: str
 
 class MockDebugWrapper(BaseModel):
+    text: str
     debug_info: DebugInfo
-    response: MockResponse
 
 @pytest.mark.asyncio
 async def test_generateObjectWithTemplates_success():
@@ -18,9 +18,9 @@ async def test_generateObjectWithTemplates_success():
         mock_debug_info = DebugInfo(prompt_difficulties="none", prompt_improvements="none")
         mock_response = MockResponse(text="test")
         
-        # The mock should return an object with 'response' and 'debug_info' attributes
+        # The mock should return an object with the original fields and 'debug_info' attribute
         mock_return = AsyncMock()
-        mock_return.response = mock_response
+        mock_return.text = mock_response.text
         mock_return.debug_info = mock_debug_info
         
         # Mock the usage attribute

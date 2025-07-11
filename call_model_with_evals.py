@@ -23,7 +23,7 @@ LLM_CALL_ARCHIVE = "evals/archived_calls.jsonl"
 
 def set_logging_level(level = logging.DEBUG):
     from openai import OpenAI
-    import call_models.call_model as call_model
+    import call_model as call_model
     """
     Sets the logging level for the current module, call_model module,
     and redirects OpenAI logging. All logs from these sources will also go to a file.
@@ -85,19 +85,27 @@ def set_logging_level(level = logging.DEBUG):
 
 T = TypeVar('T', bound=BaseModel)
 
-class TextResponse(BaseModel):
-    """Model for storing text response with debug information"""
-    text: str
-    debug_info: DebugInfo
-
 def _create_debug_wrapper_model(base_model: Type[T]) -> Type[BaseModel]:
     """
-    Create a wrapper model that includes debug information alongside the original model
+    Create a wrapper model that extends the base model and adds debug information
     """
+    # Get the base model's fields
+    base_fields = {}
+    if hasattr(base_model, 'model_fields'):
+        # Pydantic v2
+        for field_name, field_info in base_model.model_fields.items():
+            base_fields[field_name] = (field_info.annotation, field_info.default if field_info.default is not None else ...)
+    else:
+        # Pydantic v1 fallback
+        for field_name, field_info in base_model.__fields__.items():
+            base_fields[field_name] = (field_info.type_, field_info.default if field_info.default is not None else ...)
+    
+    # Add debug_info field
+    base_fields['debug_info'] = (DebugInfo, ...)
+    
     return create_model(
         f'DebugWrapper_{base_model.__name__}',
-        debug_info=(DebugInfo, ...),
-        response=(base_model, ...)
+        **base_fields
     )
 
 def _get_description_parameters(pydantic_model: Type[BaseModel]) -> dict:
@@ -314,12 +322,15 @@ async def generateObjectUsingTools(
                 logger.warn(f"Malformed response: {parsed_content}")
                 return f"Error: Malformed response from model", debug_info
 
+            debug_info = DebugInfo(prompt_difficulties="", prompt_improvements="")
+
             if "debug_info" in parsed_content:
                 try:
                     debug_info = DebugInfo(**parsed_content["debug_info"])
                 except Exception as e:
-                    logger.warn(f"Error creating User object: {e}")
-                    debug_info = None
+                    logger.warn(f"Error creating DebugInfo object: {e}")
+                    
+            debug_info.archive_id = str(uuid.uuid4())
 
             if parsed_content["type"] == "answer":
                 try:
@@ -407,6 +418,7 @@ async def generateObjectUsingTools(
                         'tools_params': json.dumps(tools_params, indent=2, cls=PydanticEncoder)
                     }
             archive_info = ArchiveInfo(
+                id=debug_info.archive_id,
                 timestamp=datetime.now(),
                 model=model,
                 system_prompt_template=system_prompt_template,
@@ -512,24 +524,42 @@ This debug information will be used to improve future interactions but won't be 
         max_retries=max_retries,
         previous_messages=previous_messages
     )
-    
-    # If the response is a list of tool calls, return it as is
-    if isinstance(_response, list):
-        return _response
-    
-    #TODO archive the call when the debug_reponse is a list
 
-    logger.info(f"Model response: {_response.response}")
+    logger.info(f"Model response: {_response}")
+    
+    # Extract debug info before creating the original response object
+    debug_info = _response.debug_info
+    debug_info = debug_info or DebugInfo(prompt_difficulties="", prompt_improvements="")
+    debug_info.archive_id = str(uuid.uuid4())
     
     # Log the debug information
     logger.info("Debug information from model response:")
-    logger.info(f"Prompt difficulties: {_response.debug_info.prompt_difficulties}")
-    logger.info(f"Prompt improvements: {_response.debug_info.prompt_improvements}")
+    logger.info(f"Prompt difficulties: {debug_info.prompt_difficulties}")
+    logger.info(f"Prompt improvements: {debug_info.prompt_improvements}")
+    
+    # Create the original response object without debug_info
+    original_response_data = {}
+    
+    # Get field names from the original response model
+    if hasattr(response_model, 'model_fields'):
+        # Pydantic v2
+        field_names = response_model.model_fields.keys()
+    else:
+        # Pydantic v1
+        field_names = response_model.__fields__.keys()
+    
+    # Extract fields from the debug wrapper response
+    for field_name in field_names:
+        if hasattr(_response, field_name) and field_name != 'debug_info':
+            original_response_data[field_name] = getattr(_response, field_name)
+    
+    original_response = response_model(**original_response_data)
     
     response_model_schema = json.dumps(response_model.model_json_schema()) if hasattr(response_model, "model_json_schema") else ""
     
     # Create archive info
     archive_info = ArchiveInfo(
+        id=debug_info.archive_id,
         timestamp=datetime.now(),
         model=model,
         system_prompt_template=system_prompt_template,
@@ -542,8 +572,8 @@ This debug information will be used to improve future interactions but won't be 
         time_taken=time.time() - start_time,
         input_tokens=getattr(_response, 'usage', {}).get('prompt_tokens'),
         output_tokens=getattr(_response, 'usage', {}).get('completion_tokens'),
-        response=_response.response,
-        debug_info=_response.debug_info
+        response=original_response,
+        debug_info=debug_info
     )
     
     # Archive the call in a background task
@@ -551,7 +581,7 @@ This debug information will be used to improve future interactions but won't be 
         asyncio.create_task(_archive_call(archive_info, archive_path))
     
     # Return both the response and debug info
-    return _response.response, _response.debug_info
+    return original_response, debug_info
 
 async def _archive_call(archive_info: ArchiveInfo, archive_path: str):
     """Archive a model call to a JSONL file"""
@@ -623,12 +653,7 @@ async def generateTextWithTemplates(
     if isinstance(response, list):
         return response
     
-    # If the response is a TextResponse object, extract the text and debug info
-    if isinstance(response, TextResponse):
-        text = response.text
-    else:
-        # Handle the case where response is a string (no tools used)
-        text = response
+    text = response
     
     # Create archive info
     archive_info = ArchiveInfo(
@@ -654,3 +679,17 @@ async def generateTextWithTemplates(
     
     # Return both the text and debug info
     return text
+
+async def wait_for_all_tasks():
+    # 1. Get the current task (which is this main_fixed coroutine)
+    current_task = asyncio.current_task()
+
+    # 2. Get all other tasks running on the loop
+    all_other_tasks = {
+        task for task in asyncio.all_tasks() if task is not current_task
+    }
+
+    if all_other_tasks:
+        print(f"Main: Found {len(all_other_tasks)} background task(s). Waiting for them to complete.")
+        # 3. Wait for all of them to finish
+        await asyncio.gather(*all_other_tasks)

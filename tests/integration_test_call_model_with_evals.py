@@ -1,7 +1,7 @@
 
 import pytest
 from pydantic import BaseModel, Field
-from call_model_with_evals import generateObjectWithTemplates, generateTextWithTemplates, generateObjectUsingTools
+from call_model_with_evals import generateObjectWithTemplates, generateTextWithTemplates, generateObjectUsingTools, wait_for_all_tasks
 from pedantic_models import DebugInfo
 from call_model import OpenRouterClient
 from dotenv import load_dotenv
@@ -32,6 +32,8 @@ async def test_integration_generateObjectWithTemplates_success():
         response_model=User
     )
 
+    await wait_for_all_tasks()
+
     assert isinstance(response, User)
     assert response.name == "Jane Doe"
     assert response.age == 25
@@ -46,6 +48,8 @@ async def test_integration_generateTextWithTemplates_success():
         user_prompt_template="Write a short story about a robot who discovers music.",
         user_prompt_inputs={}
     )
+
+    await wait_for_all_tasks()
 
     assert isinstance(response, str)
     assert len(response) > 50
@@ -77,6 +81,8 @@ async def test_integration_generateObjectUsingTools_success():
     )
 
     print(response)
+
+    await wait_for_all_tasks()
 
     assert isinstance(response, CapitalResponse)
     assert response.capital == "Paris"
