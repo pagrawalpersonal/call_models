@@ -41,10 +41,11 @@ def log_retry_attempt(retry_state):
     seconds = retry_state.seconds_since_start if retry_state.seconds_since_start is not None else 0
     next_sleep = retry_state.next_action.sleep if retry_state.next_action and retry_state.next_action.sleep is not None else 0
     error_msg = str(retry_state.outcome.exception()) if retry_state.outcome is not None else "Unknown error"
-    logger.warning(
-        f"Gemini API retry attempt {retry_state.attempt_number} after {seconds:.2f}s. "
-        f"Next attempt in {next_sleep:.2f}s. "
-        f"Last error: {error_msg}"
+    if retry_state.attempt_number > 1:
+        logger.warning(
+            f"Gemini API retry attempt {retry_state.attempt_number} after {seconds:.2f}s. "
+            f"Next attempt in {next_sleep:.2f}s. "
+            f"Last error: {error_msg}"
     )
 
 def log_after_retry(retry_state):
